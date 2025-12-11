@@ -31,13 +31,24 @@ async function getToken() {
 
 app.post('/create', async (req, res) => {
   try {
-    const { first_name, last_name, phone, email } = req.body;
+    const { first_name, last_name, phone, email, date_of_birth, how_did_you_hear } = req.body;
 
     if (!first_name || !last_name || !email) {
       return res.json({
         success: false,
         error: 'Please provide first_name, last_name, and email'
       });
+    }
+
+    // Convert date_of_birth from Month-Day-Year to ISO format if provided
+    let birthDate = null;
+    if (date_of_birth) {
+      try {
+        const [month, day, year] = date_of_birth.split('-');
+        birthDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T00:00:00`;
+      } catch (e) {
+        console.log('Invalid date format:', date_of_birth);
+      }
     }
 
     const authToken = await getToken();
@@ -65,16 +76,26 @@ app.post('/create', async (req, res) => {
     }
 
     // Step 2: Create new client profile
+    const clientData = {
+      FirstName: first_name,
+      LastName: last_name,
+      Email: email,
+      MobilePhone: phone?.replace(/\D/g, ''),
+      ObjectState: 2026,  // Active
+      OnlineBookingAccess: true
+    };
+
+    // Add optional fields if provided
+    if (birthDate) {
+      clientData.DateOfBirth = birthDate;
+    }
+    if (how_did_you_hear) {
+      clientData.ReferralSourceDescription = how_did_you_hear;
+    }
+
     const createRes = await axios.post(
       `${CONFIG.API_URL}/client?TenantId=${CONFIG.TENANT_ID}&LocationId=${CONFIG.LOCATION_ID}`,
-      {
-        FirstName: first_name,
-        LastName: last_name,
-        Email: email,
-        MobilePhone: phone?.replace(/\D/g, ''),
-        ObjectState: 2026,  // Active
-        OnlineBookingAccess: true
-      },
+      clientData,
       { headers: { Authorization: `Bearer ${authToken}` }}
     );
 
