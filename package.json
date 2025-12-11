@@ -1,0 +1,13 @@
+{
+  "name": "create-profile",
+  "version": "1.0.0",
+  "description": "Retell to Meevo proxy - create-profile",
+  "main": "create-profile.js",
+  "scripts": {
+    "start": "node create-profile.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "axios": "^1.6.2"
+  }
+}
