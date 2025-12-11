@@ -40,16 +40,9 @@ app.post('/create', async (req, res) => {
       });
     }
 
-    // Convert date_of_birth from Month-Day-Year to ISO format if provided
-    let birthDate = null;
-    if (date_of_birth) {
-      try {
-        const [month, day, year] = date_of_birth.split('-');
-        birthDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T00:00:00`;
-      } catch (e) {
-        console.log('Invalid date format:', date_of_birth);
-      }
-    }
+    // Note: DOB and Referral are collected but NOT sent to Meevo
+    // (Meevo Public API doesn't support these fields)
+    console.log('Collected (not saved to Meevo):', { date_of_birth, how_did_you_hear });
 
     const authToken = await getToken();
 
@@ -79,19 +72,25 @@ app.post('/create', async (req, res) => {
     const clientData = {
       FirstName: first_name,
       LastName: last_name,
-      Email: email,
-      MobilePhone: phone?.replace(/\D/g, ''),
+      EmailAddress: email,  // Correct field name
       ObjectState: 2026,  // Active
       OnlineBookingAccess: true
     };
 
-    // Add optional fields if provided
-    if (birthDate) {
-      clientData.DateOfBirth = birthDate;
+    // Add phone number in correct array format
+    if (phone) {
+      const cleanPhone = phone.replace(/\D/g, '');
+      clientData.PhoneNumbers = [{
+        Type: 21,  // Mobile phone type
+        CountryCode: "1",
+        Number: cleanPhone,
+        IsPrimary: true,
+        SmsCommOptedInState: 2087
+      }];
     }
-    if (how_did_you_hear) {
-      clientData.ReferralSourceDescription = how_did_you_hear;
-    }
+
+    // DOB and Referral NOT supported by Meevo Public API
+    // These fields are collected by Retell but not saved to Meevo
 
     const createRes = await axios.post(
       `${CONFIG.API_URL}/client?TenantId=${CONFIG.TENANT_ID}&LocationId=${CONFIG.LOCATION_ID}`,
