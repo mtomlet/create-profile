@@ -33,10 +33,18 @@ app.post('/create', async (req, res) => {
   try {
     const { first_name, last_name, phone, email, date_of_birth, how_did_you_hear } = req.body;
 
-    if (!first_name || !last_name || !email) {
+    if (!first_name || !last_name) {
       return res.json({
         success: false,
-        error: 'Please provide first_name, last_name, and email'
+        error: 'Please provide first_name and last_name'
+      });
+    }
+
+    // Phone is required if no email provided
+    if (!email && !phone) {
+      return res.json({
+        success: false,
+        error: 'Please provide either email or phone number'
       });
     }
 
@@ -53,15 +61,27 @@ app.post('/create', async (req, res) => {
     );
 
     const clients = clientsRes.data.data || clientsRes.data;
-    const existingClient = clients.find(c =>
-      c.email?.toLowerCase() === email.toLowerCase()
-    );
+
+    // Check for existing client by email OR phone
+    let existingClient = null;
+    if (email) {
+      existingClient = clients.find(c =>
+        c.emailAddress?.toLowerCase() === email.toLowerCase()
+      );
+    }
+    if (!existingClient && phone) {
+      const cleanPhone = phone.replace(/\D/g, '');
+      existingClient = clients.find(c => {
+        const clientPhone = (c.mobilePhone || c.primaryPhone || '').replace(/\D/g, '');
+        return clientPhone === cleanPhone || clientPhone.endsWith(cleanPhone) || cleanPhone.endsWith(clientPhone);
+      });
+    }
 
     if (existingClient) {
-      console.log('Client already exists:', existingClient.id);
+      console.log('Client already exists:', existingClient.clientId);
       return res.json({
         success: true,
-        client_id: existingClient.id,
+        client_id: existingClient.clientId,
         message: 'Profile already exists',
         client_name: `${existingClient.firstName} ${existingClient.lastName}`,
         existing: true
@@ -72,10 +92,14 @@ app.post('/create', async (req, res) => {
     const clientData = {
       FirstName: first_name,
       LastName: last_name,
-      EmailAddress: email,  // Correct field name
       ObjectState: 2026,  // Active
       OnlineBookingAccess: true
     };
+
+    // Add email only if provided
+    if (email) {
+      clientData.EmailAddress = email;
+    }
 
     // Add phone number in correct array format
     if (phone) {
