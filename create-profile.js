@@ -115,15 +115,15 @@ app.post('/create', async (req, res) => {
       clientData.EmailAddress = email;
     }
 
-    // Add phone number in correct array format
+    // Add phone number in correct array format (camelCase required for Meevo!)
     if (phone) {
       const cleanPhone = phone.replace(/\D/g, '');
-      clientData.PhoneNumbers = [{
-        Type: 21,  // Mobile phone type
-        CountryCode: "1",
-        Number: cleanPhone,
-        IsPrimary: true,
-        SmsCommOptedInState: 2087
+      clientData.phoneNumbers = [{
+        type: 21,  // Mobile phone type
+        countryCode: "1",
+        number: cleanPhone,
+        isPrimary: true,
+        smsCommOptedInState: 2087  // SMS opt-in enabled
       }];
     }
 
@@ -164,7 +164,8 @@ app.post('/create', async (req, res) => {
       client_id: clientId,
       message: 'Profile created successfully',
       client_name: `${first_name} ${last_name}`,
-      existing: false
+      existing: false,
+      date_of_birth_collected: date_of_birth || null
     });
 
   } catch (error) {
