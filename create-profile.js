@@ -10,8 +10,21 @@ const CONFIG = {
   CLIENT_ID: 'a7139b22-775f-4938-8ecb-54aa23a1948d',
   CLIENT_SECRET: 'b566556f-e65d-47dd-a27d-dd1060d9fe2d',
   TENANT_ID: '4',
-  LOCATION_ID: '5'
+  LOCATION_ID: '5',
+  // Caller ID lookup cache endpoint (to notify about new clients)
+  CALLER_LOOKUP_CACHE_URL: 'https://caller-id-lookup-production-3756.up.railway.app/cache'
 };
+
+// Notify caller-id-lookup about new client (for cache)
+async function notifyCallerLookupCache(clientData) {
+  try {
+    await axios.post(CONFIG.CALLER_LOOKUP_CACHE_URL, clientData, { timeout: 5000 });
+    console.log('[Cache] Notified caller-id-lookup:', clientData.phone);
+  } catch (err) {
+    // Don't fail if cache notification fails - it's not critical
+    console.log('[Cache] Failed to notify caller-id-lookup (non-critical):', err.message);
+  }
+}
 
 let token = null;
 let tokenExpiry = null;
@@ -131,6 +144,18 @@ app.post('/create', async (req, res) => {
         success: false,
         error: 'Client profile created but no ID returned',
         debug: createRes.data
+      });
+    }
+
+    // Notify caller-id-lookup cache about new client
+    // This ensures the client is found immediately on callback
+    if (phone) {
+      notifyCallerLookupCache({
+        client_id: clientId,
+        first_name: first_name,
+        last_name: last_name,
+        email: email || '',
+        phone: phone
       });
     }
 
