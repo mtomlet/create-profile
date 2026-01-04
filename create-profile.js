@@ -73,6 +73,7 @@ app.post('/create', async (req, res) => {
       const cleanPhone = phone.replace(/\D/g, '');
       existingClient = clients.find(c => {
         const clientPhone = (c.mobilePhone || c.primaryPhone || '').replace(/\D/g, '');
+        if (!clientPhone || clientPhone.length < 7) return false;  // Skip empty/short phones
         return clientPhone === cleanPhone || clientPhone.endsWith(cleanPhone) || cleanPhone.endsWith(clientPhone);
       });
     }
